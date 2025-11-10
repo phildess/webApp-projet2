@@ -85,7 +85,13 @@ Une application web moderne et complète pour la gestion d'un centre de formatio
 
 ## 📦 Prérequis
 
-Avant de commencer, assurez-vous d'avoir installé :
+### Option 1 : Installation avec Docker (Recommandé) 🐳
+
+- **Docker** (v20.10 ou supérieur)
+- **Docker Compose** (v2.0 ou supérieur)
+- **Git**
+
+### Option 2 : Installation manuelle
 
 - **Node.js** (v18 ou supérieur)
 - **npm** ou **yarn**
@@ -93,6 +99,32 @@ Avant de commencer, assurez-vous d'avoir installé :
 - **Git**
 
 ## 🛠️ Installation
+
+### 🐳 Installation avec Docker (Recommandé)
+
+C'est la méthode la plus simple et la plus rapide !
+
+```bash
+# 1. Cloner le repository
+git clone <votre-repo-url>
+cd webApp-projet2
+
+# 2. Démarrer l'application
+docker compose up -d
+
+# 3. Attendre que tout démarre (30 secondes environ)
+docker compose logs -f
+
+# 4. Ouvrir http://localhost dans votre navigateur
+```
+
+✅ **C'est tout !** PostgreSQL, le backend et le frontend sont maintenant en cours d'exécution.
+
+📖 **Guide complet Docker** : Consultez [DOCKER.md](./DOCKER.md) pour plus de détails
+
+---
+
+### 💻 Installation manuelle (sans Docker)
 
 ### 1. Cloner le repository
 

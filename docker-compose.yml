@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # Base de données PostgreSQL
+  postgres:
+    image: postgres:14-alpine
+    container_name: centre-formation-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: centre_admin
+      POSTGRES_PASSWORD: centre_password_2025
+      POSTGRES_DB: centre_formation
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - centre-formation-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U centre_admin -d centre_formation"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: centre-formation-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://centre_admin:centre_password_2025@postgres:5432/centre_formation?schema=public
+      JWT_SECRET: centre-formation-super-secret-key-docker-2025
+      JWT_EXPIRES_IN: 7d
+      PORT: 3000
+      NODE_ENV: production
+      FRONTEND_URL: http://localhost
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - backend_uploads:/app/uploads
+    networks:
+      - centre-formation-network
+    command: >
+      sh -c "
+        npx prisma migrate deploy &&
+        npx prisma db seed &&
+        node dist/index.js
+      "
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3000/api
+    container_name: centre-formation-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - centre-formation-network
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_uploads:
+    driver: local
+
+networks:
+  centre-formation-network:
+    driver: bridge

@@ -1,0 +1,458 @@
+// Schéma Prisma pour le Centre de Formation pour Adultes
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========== ENUMS ==========
+
+enum Role {
+  ADMIN
+  FORMATEUR
+  APPRENANT
+}
+
+enum StatutApprenant {
+  ACTIF
+  EN_ATTENTE
+  TERMINE
+  SUSPENDU
+}
+
+enum TypeContrat {
+  CDI
+  CDD
+  VACATION
+  FREELANCE
+}
+
+enum NiveauFormation {
+  DEBUTANT
+  INTERMEDIAIRE
+  AVANCE
+  EXPERT
+}
+
+enum StatutSession {
+  PLANIFIEE
+  EN_COURS
+  TERMINEE
+  ANNULEE
+}
+
+enum TypeEvaluation {
+  NOTE_SUR_20
+  COMPETENCE
+  QCM
+  PROJET
+  ORAL
+}
+
+enum NiveauCompetence {
+  NON_ACQUIS
+  EN_COURS_ACQUISITION
+  ACQUIS
+  EXPERT
+}
+
+enum TypeRessource {
+  DOCUMENT
+  VIDEO
+  LIEN
+  EXERCICE
+  SUPPORT_COURS
+}
+
+// ========== MODÈLES PRINCIPAUX ==========
+
+// Utilisateur de base (authentification commune)
+model User {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  password          String
+  role              Role
+  nom               String
+  prenom            String
+  telephone         String?
+  photo             String?
+  dateCreation      DateTime           @default(now())
+  dateMiseAJour     DateTime           @updatedAt
+  actif             Boolean            @default(true)
+
+  // Relations polymorphes selon le rôle
+  apprenant         Apprenant?
+  formateur         Formateur?
+
+  // Notifications et communications
+  notifications     Notification[]
+  messagesEnvoyes   Message[]          @relation("MessagesSent")
+  messagesRecus     Message[]          @relation("MessagesReceived")
+
+  @@map("users")
+}
+
+// ========== APPRENANTS ==========
+
+model Apprenant {
+  id                    String                @id @default(cuid())
+  userId                String                @unique
+  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Informations personnelles
+  dateNaissance         DateTime
+  adresse               String?
+  ville                 String?
+  codePostal            String?
+  pays                  String?
+  pieceIdentite         String?
+  numeroPieceIdentite   String?
+
+  // Statut et suivi
+  statut                StatutApprenant       @default(EN_ATTENTE)
+  dateInscription       DateTime              @default(now())
+
+  // Documents
+  cv                    String?
+  lettreMotivation      String?
+  diplomes              String[]
+
+  // Relations
+  inscriptions          Inscription[]
+  evaluations           Evaluation[]
+  notes                 Note[]
+  competencesAcquises   CompetenceApprenant[]
+  documents             Document[]
+
+  @@map("apprenants")
+}
+
+// ========== FORMATEURS ==========
+
+model Formateur {
+  id                    String                @id @default(cuid())
+  userId                String                @unique
+  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Informations professionnelles
+  qualifications        String[]
+  domainesExpertise     String[]
+  biographie            String?
+
+  // Contrat
+  typeContrat           TypeContrat?
+  dateDebutContrat      DateTime?
+  dateFinContrat        DateTime?
+  tauxHoraire           Float?
+
+  // Disponibilités (format JSON pour flexibilité)
+  disponibilites        Json?
+
+  // Relations
+  sessionsFormation     SessionFormation[]
+  modulesEnseignes      ModuleFormation[]
+  evaluationsCreees     Evaluation[]
+  emploiDuTemps         EmploiDuTemps[]
+
+  @@map("formateurs")
+}
+
+// ========== FORMATIONS ==========
+
+model Formation {
+  id                    String                @id @default(cuid())
+  titre                 String
+  description           String
+  objectifs             String[]
+  prerequis             String[]
+  publicVise            String?
+  dureeHeures           Int
+  niveau                NiveauFormation
+  cout                  Float?
+  domaine               String
+  actif                 Boolean               @default(true)
+  dateCreation          DateTime              @default(now())
+  dateMiseAJour         DateTime              @updatedAt
+
+  // Image et documents
+  image                 String?
+  brochure              String?
+
+  // Relations
+  sessions              SessionFormation[]
+  modules               ModuleFormation[]
+  competences           Competence[]
+
+  @@map("formations")
+}
+
+model SessionFormation {
+  id                    String                @id @default(cuid())
+  formationId           String
+  formation             Formation             @relation(fields: [formationId], references: [id], onDelete: Cascade)
+
+  // Informations session
+  nom                   String
+  dateDebut             DateTime
+  dateFin               DateTime
+  nombrePlaces          Int
+  placesRestantes       Int
+  statut                StatutSession         @default(PLANIFIEE)
+
+  // Formateurs assignés
+  formateurPrincipalId  String?
+  formateurPrincipal    Formateur?            @relation(fields: [formateurPrincipalId], references: [id])
+
+  // Relations
+  inscriptions          Inscription[]
+  emploiDuTemps         EmploiDuTemps[]
+  evaluations           Evaluation[]
+
+  @@map("sessions_formation")
+}
+
+// Inscription d'un apprenant à une session
+model Inscription {
+  id                    String                @id @default(cuid())
+  apprenantId           String
+  apprenant             Apprenant             @relation(fields: [apprenantId], references: [id], onDelete: Cascade)
+  sessionId             String
+  session               SessionFormation      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  dateInscription       DateTime              @default(now())
+  statut                String                @default("INSCRIT") // INSCRIT, VALIDE, REFUSE, ABANDONNE
+  commentaire           String?
+
+  @@unique([apprenantId, sessionId])
+  @@map("inscriptions")
+}
+
+// ========== PROGRAMMES ET MODULES ==========
+
+model ModuleFormation {
+  id                    String                @id @default(cuid())
+  formationId           String
+  formation             Formation             @relation(fields: [formationId], references: [id], onDelete: Cascade)
+
+  titre                 String
+  description           String?
+  objectifsPedagogiques String[]
+  contenu               String
+  dureeHeures           Int
+  ordre                 Int                   // Pour ordonner les modules
+
+  // Formateur responsable
+  formateurId           String?
+  formateur             Formateur?            @relation(fields: [formateurId], references: [id])
+
+  // Relations
+  ressources            Ressource[]
+  competences           Competence[]
+  evaluations           Evaluation[]
+
+  @@map("modules_formation")
+}
+
+model Ressource {
+  id                    String                @id @default(cuid())
+  moduleId              String
+  module                ModuleFormation       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  titre                 String
+  description           String?
+  type                  TypeRessource
+  url                   String?               // URL du fichier ou lien externe
+  fichier               String?               // Chemin du fichier uploadé
+  tailleFichier         Int?                  // En octets
+  dateAjout             DateTime              @default(now())
+
+  @@map("ressources")
+}
+
+// ========== COMPÉTENCES ==========
+
+model Competence {
+  id                    String                @id @default(cuid())
+  formationId           String?
+  formation             Formation?            @relation(fields: [formationId], references: [id], onDelete: Cascade)
+  moduleId              String?
+  module                ModuleFormation?      @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  nom                   String
+  description           String?
+  categorie             String?
+
+  // Relations
+  evaluations           EvaluationCompetence[]
+  apprenants            CompetenceApprenant[]
+
+  @@map("competences")
+}
+
+model CompetenceApprenant {
+  id                    String                @id @default(cuid())
+  apprenantId           String
+  apprenant             Apprenant             @relation(fields: [apprenantId], references: [id], onDelete: Cascade)
+  competenceId          String
+  competence            Competence            @relation(fields: [competenceId], references: [id], onDelete: Cascade)
+
+  niveau                NiveauCompetence
+  dateAcquisition       DateTime              @default(now())
+  commentaire           String?
+
+  @@unique([apprenantId, competenceId])
+  @@map("competences_apprenants")
+}
+
+// ========== ÉVALUATIONS ET NOTES ==========
+
+model Evaluation {
+  id                    String                @id @default(cuid())
+  sessionId             String
+  session               SessionFormation      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  moduleId              String?
+  module                ModuleFormation?      @relation(fields: [moduleId], references: [id])
+
+  titre                 String
+  description           String?
+  type                  TypeEvaluation
+  dateEvaluation        DateTime
+  dureeMinutes          Int?
+  coefficient           Float                 @default(1)
+  noteMax               Float?                @default(20)
+
+  // Créateur
+  createurId            String
+  createur              Formateur             @relation(fields: [createurId], references: [id])
+
+  // Relations
+  notes                 Note[]
+  competences           EvaluationCompetence[]
+
+  @@map("evaluations")
+}
+
+model Note {
+  id                    String                @id @default(cuid())
+  evaluationId          String
+  evaluation            Evaluation            @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  apprenantId           String
+  apprenant             Apprenant             @relation(fields: [apprenantId], references: [id], onDelete: Cascade)
+
+  note                  Float?                // Pour les notes sur 20
+  commentaire           String?
+  dateSaisie            DateTime              @default(now())
+  dateModification      DateTime              @updatedAt
+
+  @@unique([evaluationId, apprenantId])
+  @@map("notes")
+}
+
+// Lien entre évaluation et compétences évaluées
+model EvaluationCompetence {
+  id                    String                @id @default(cuid())
+  evaluationId          String
+  evaluation            Evaluation            @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  competenceId          String
+  competence            Competence            @relation(fields: [competenceId], references: [id], onDelete: Cascade)
+
+  poidsEvaluation       Float                 @default(1) // Poids de cette compétence dans l'évaluation
+
+  @@unique([evaluationId, competenceId])
+  @@map("evaluations_competences")
+}
+
+// ========== EMPLOI DU TEMPS ==========
+
+model Salle {
+  id                    String                @id @default(cuid())
+  nom                   String
+  capacite              Int
+  equipements           String[]
+  localisation          String?
+  actif                 Boolean               @default(true)
+
+  emploiDuTemps         EmploiDuTemps[]
+
+  @@map("salles")
+}
+
+model EmploiDuTemps {
+  id                    String                @id @default(cuid())
+  sessionId             String
+  session               SessionFormation      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  titre                 String
+  description           String?
+  dateDebut             DateTime
+  dateFin               DateTime
+
+  // Salle
+  salleId               String?
+  salle                 Salle?                @relation(fields: [salleId], references: [id])
+
+  // Formateur
+  formateurId           String?
+  formateur             Formateur?            @relation(fields: [formateurId], references: [id])
+
+  // Récurrence (optionnel)
+  recurrence            String?               // UNIQUE, HEBDOMADAIRE, MENSUEL
+  joursSemaine          Int[]                 // [1,2,3,4,5] pour Lun-Ven
+
+  dateCreation          DateTime              @default(now())
+  dateMiseAJour         DateTime              @updatedAt
+
+  @@map("emploi_du_temps")
+}
+
+// ========== DOCUMENTS ==========
+
+model Document {
+  id                    String                @id @default(cuid())
+  apprenantId           String?
+  apprenant             Apprenant?            @relation(fields: [apprenantId], references: [id], onDelete: Cascade)
+
+  titre                 String
+  typeDocument          String                // CV, DIPLOME, ATTESTATION, etc.
+  cheminFichier         String
+  tailleFichier         Int
+  mimeType              String
+  dateUpload            DateTime              @default(now())
+
+  @@map("documents")
+}
+
+// ========== COMMUNICATION ==========
+
+model Notification {
+  id                    String                @id @default(cuid())
+  userId                String
+  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  titre                 String
+  message               String
+  type                  String                // INFO, RAPPEL, ALERTE, etc.
+  lu                    Boolean               @default(false)
+  dateEnvoi             DateTime              @default(now())
+
+  @@map("notifications")
+}
+
+model Message {
+  id                    String                @id @default(cuid())
+  expediteurId          String
+  expediteur            User                  @relation("MessagesSent", fields: [expediteurId], references: [id])
+  destinataireId        String
+  destinataire          User                  @relation("MessagesReceived", fields: [destinataireId], references: [id])
+
+  sujet                 String
+  contenu               String
+  lu                    Boolean               @default(false)
+  dateEnvoi             DateTime              @default(now())
+
+  @@map("messages")
+}

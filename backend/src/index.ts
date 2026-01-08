@@ -36,7 +36,7 @@ app.use('/api/evaluations', evaluationRoutes);
 app.use('/api/emploi-du-temps', emploiDuTempsRoutes);
 
 // Route de santé
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'OK',
     message: 'API Centre de Formation - Running',

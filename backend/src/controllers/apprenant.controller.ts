@@ -75,11 +75,6 @@ export const getApprenantById = async (req: Request, res: Response) => {
             },
           },
         },
-        evaluations: {
-          include: {
-            evaluation: true,
-          },
-        },
         notes: {
           include: {
             evaluation: true,

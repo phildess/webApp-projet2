@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import { validationResult } from 'express-validator';
 import prisma from '../config/database';
 import { generateToken } from '../config/jwt';
-import { AppError } from '../middleware/errorHandler';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -141,8 +140,19 @@ export const getProfile = async (req: Request, res: Response) => {
         apprenant: true,
         formateur: true,
       },
-      omit: {
-        password: true,
+      select: {
+        id: true,
+        email: true,
+        nom: true,
+        prenom: true,
+        role: true,
+        telephone: true,
+        photo: true,
+        dateCreation: true,
+        dateMiseAJour: true,
+        actif: true,
+        apprenant: true,
+        formateur: true,
       },
     });
 
@@ -173,8 +183,17 @@ export const updateProfile = async (req: Request, res: Response) => {
         telephone,
         photo,
       },
-      omit: {
-        password: true,
+      select: {
+        id: true,
+        email: true,
+        nom: true,
+        prenom: true,
+        role: true,
+        telephone: true,
+        photo: true,
+        dateCreation: true,
+        dateMiseAJour: true,
+        actif: true,
       },
     });
 

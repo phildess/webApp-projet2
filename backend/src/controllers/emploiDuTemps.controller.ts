@@ -194,7 +194,7 @@ export const deleteEmploiDuTemps = async (req: Request, res: Response) => {
 };
 
 // Gestion des salles
-export const getAllSalles = async (req: Request, res: Response) => {
+export const getAllSalles = async (_req: Request, res: Response) => {
   try {
     const salles = await prisma.salle.findMany({
       where: {

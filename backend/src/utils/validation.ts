@@ -1,4 +1,4 @@
-import { body, param, query, ValidationChain } from 'express-validator';
+import { body, param, ValidationChain } from 'express-validator';
 
 // Validations communes
 export const emailValidation: ValidationChain = body('email')

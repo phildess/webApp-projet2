@@ -8,7 +8,7 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 # Installer toutes les dépendances (y compris dev pour le build)
-RUN npm ci
+RUN npm install
 
 # Copier le code source
 COPY prisma ./prisma/
@@ -28,8 +28,8 @@ WORKDIR /app
 # Copier les fichiers de dépendances
 COPY package*.json ./
 
-# Installer seulement les dépendances de production avec la nouvelle syntaxe
-RUN npm ci --omit=dev
+# Installer seulement les dépendances de production
+RUN npm install --omit=dev
 
 # Copier le build depuis le stage précédent
 COPY --from=builder /app/dist ./dist

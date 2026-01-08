@@ -7,17 +7,17 @@ services:
     container_name: centre-formation-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: centre_admin
-      POSTGRES_PASSWORD: centre_password_2025
-      POSTGRES_DB: centre_formation
+      POSTGRES_USER: ${POSTGRES_USER:-centre_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-centre_password_2025}
+      POSTGRES_DB: ${POSTGRES_DB:-centre_formation}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - centre-formation-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U centre_admin -d centre_formation"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-centre_admin} -d ${POSTGRES_DB:-centre_formation}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -30,14 +30,14 @@ services:
     container_name: centre-formation-backend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${BACKEND_PORT:-3000}:3000"
     environment:
-      DATABASE_URL: postgresql://centre_admin:centre_password_2025@postgres:5432/centre_formation?schema=public
-      JWT_SECRET: centre-formation-super-secret-key-docker-2025
-      JWT_EXPIRES_IN: 7d
+      DATABASE_URL: postgresql://${POSTGRES_USER:-centre_admin}:${POSTGRES_PASSWORD:-centre_password_2025}@postgres:5432/${POSTGRES_DB:-centre_formation}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-centre-formation-super-secret-key-docker-2025}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       PORT: 3000
       NODE_ENV: production
-      FRONTEND_URL: http://localhost
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,8 +47,13 @@ services:
       - centre-formation-network
     command: >
       sh -c "
+        echo 'Attente de la base de données...' &&
+        sleep 5 &&
+        echo 'Exécution des migrations...' &&
         npx prisma migrate deploy &&
-        npx prisma db seed &&
+        echo 'Peuplement de la base de données...' &&
+        npx prisma db seed || echo 'Seed déjà effectué' &&
+        echo 'Démarrage du serveur...' &&
         node dist/index.js
       "
 
@@ -57,16 +62,17 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        VITE_API_URL: http://localhost:3000/api
     container_name: centre-formation-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "${FRONTEND_PORT:-80}:80"
     depends_on:
       - backend
     networks:
       - centre-formation-network
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
 
 volumes:
   postgres_data:

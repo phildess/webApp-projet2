@@ -1,13 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../config/jwt';
-import { Role } from '@prisma/client';
 
-export const authenticate = (req: Request, res: Response, next: NextFunction) => {
+export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
   try {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Token manquant ou invalide' });
+      res.status(401).json({ error: 'Token manquant ou invalide' });
+      return;
     }
 
     const token = authHeader.substring(7);
@@ -16,23 +16,25 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
     req.user = {
       userId: decoded.userId,
       email: decoded.email,
-      role: decoded.role as Role,
+      role: decoded.role,
     };
 
     next();
   } catch (error) {
-    return res.status(401).json({ error: 'Token invalide ou expiré' });
+    res.status(401).json({ error: 'Token invalide ou expiré' });
   }
 };
 
-export const authorize = (...allowedRoles: Role[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+export const authorize = (...allowedRoles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Non authentifié' });
+      res.status(401).json({ error: 'Non authentifié' });
+      return;
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Accès refusé' });
+      res.status(403).json({ error: 'Accès refusé' });
+      return;
     }
 
     next();

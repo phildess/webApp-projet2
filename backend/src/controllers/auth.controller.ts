@@ -4,11 +4,12 @@ import { validationResult } from 'express-validator';
 import prisma from '../config/database';
 import { generateToken } from '../config/jwt';
 
-export const register = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      res.status(400).json({ errors: errors.array() });
+      return;
     }
 
     const { email, password, nom, prenom, role, telephone } = req.body;
@@ -16,7 +17,8 @@ export const register = async (req: Request, res: Response) => {
     // Vérifier si l'utilisateur existe déjà
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ error: 'Cet email est déjà utilisé' });
+      res.status(400).json({ error: 'Cet email est déjà utilisé' });
+      return;
     }
 
     // Hasher le mot de passe
@@ -79,11 +81,12 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      res.status(400).json({ errors: errors.array() });
+      return;
     }
 
     const { email, password } = req.body;
@@ -98,13 +101,15 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (!user || !user.actif) {
-      return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+      res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+      return;
     }
 
     // Vérifier le mot de passe
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+      res.status(401).json({ error: 'Email ou mot de passe incorrect' });
+      return;
     }
 
     // Générer le token
@@ -128,10 +133,11 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-export const getProfile = async (req: Request, res: Response) => {
+export const getProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Non authentifié' });
+      res.status(401).json({ error: 'Non authentifié' });
+      return;
     }
 
     const user = await prisma.user.findUnique({
@@ -140,37 +146,28 @@ export const getProfile = async (req: Request, res: Response) => {
         apprenant: true,
         formateur: true,
       },
-      select: {
-        id: true,
-        email: true,
-        nom: true,
-        prenom: true,
-        role: true,
-        telephone: true,
-        photo: true,
-        dateCreation: true,
-        dateMiseAJour: true,
-        actif: true,
-        apprenant: true,
-        formateur: true,
-      },
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+      res.status(404).json({ error: 'Utilisateur non trouvé' });
+      return;
     }
 
-    res.json(user);
+    // Retirer le mot de passe
+    const { password, ...userWithoutPassword } = user;
+
+    res.json(userWithoutPassword);
   } catch (error) {
     console.error('Erreur lors de la récupération du profil:', error);
     res.status(500).json({ error: 'Erreur lors de la récupération du profil' });
   }
 };
 
-export const updateProfile = async (req: Request, res: Response) => {
+export const updateProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'Non authentifié' });
+      res.status(401).json({ error: 'Non authentifié' });
+      return;
     }
 
     const { nom, prenom, telephone, photo } = req.body;
@@ -183,23 +180,14 @@ export const updateProfile = async (req: Request, res: Response) => {
         telephone,
         photo,
       },
-      select: {
-        id: true,
-        email: true,
-        nom: true,
-        prenom: true,
-        role: true,
-        telephone: true,
-        photo: true,
-        dateCreation: true,
-        dateMiseAJour: true,
-        actif: true,
-      },
     });
+
+    // Retirer le mot de passe
+    const { password, ...userWithoutPassword } = user;
 
     res.json({
       message: 'Profil mis à jour avec succès',
-      user,
+      user: userWithoutPassword,
     });
   } catch (error) {
     console.error('Erreur lors de la mise à jour du profil:', error);

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as formationController from '../controllers/formation.controller';
 import { authenticate, authorize } from '../middleware/auth';
-import { Role } from '@prisma/client';
+
 
 const router = Router();
 
@@ -10,22 +10,22 @@ router.get('/', authenticate, formationController.getAllFormations);
 router.get('/:id', authenticate, formationController.getFormationById);
 
 // Routes ADMIN uniquement
-router.post('/', authenticate, authorize(Role.ADMIN), formationController.createFormation);
-router.put('/:id', authenticate, authorize(Role.ADMIN), formationController.updateFormation);
-router.delete('/:id', authenticate, authorize(Role.ADMIN), formationController.deleteFormation);
+router.post('/', authenticate, authorize('ADMIN), formationController.createFormation);
+router.put('/:id', authenticate, authorize('ADMIN), formationController.updateFormation);
+router.delete('/:id', authenticate, authorize('ADMIN), formationController.deleteFormation);
 
 // Sessions
 router.post(
   '/:formationId/sessions',
   authenticate,
-  authorize(Role.ADMIN),
+  authorize('ADMIN),
   formationController.createSession
 );
 
 router.post(
   '/sessions/:sessionId/inscrire',
   authenticate,
-  authorize(Role.ADMIN, Role.APPRENANT),
+  authorize('ADMIN, 'APPRENANT),
   formationController.inscrireApprenant
 );
 

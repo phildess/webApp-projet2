@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import * as evaluationController from '../controllers/evaluation.controller';
 import { authenticate, authorize } from '../middleware/auth';
-import { Role } from '@prisma/client';
+
 
 const router = Router();
 
 router.post(
   '/',
   authenticate,
-  authorize(Role.ADMIN, Role.FORMATEUR),
+  authorize('ADMIN, 'FORMATEUR),
   evaluationController.createEvaluation
 );
 
@@ -21,7 +21,7 @@ router.get(
 router.post(
   '/notes',
   authenticate,
-  authorize(Role.ADMIN, Role.FORMATEUR),
+  authorize('ADMIN, 'FORMATEUR),
   evaluationController.saisirNote
 );
 
@@ -34,7 +34,7 @@ router.get(
 router.post(
   '/competences',
   authenticate,
-  authorize(Role.ADMIN, Role.FORMATEUR),
+  authorize('ADMIN, 'FORMATEUR),
   evaluationController.validerCompetence
 );
 

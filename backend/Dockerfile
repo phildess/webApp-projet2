@@ -3,6 +3,9 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
+# Installer OpenSSL pour Prisma
+RUN apk add --no-cache openssl
+
 # Copier les fichiers de dépendances
 COPY package*.json ./
 COPY tsconfig.json ./
@@ -24,6 +27,9 @@ RUN npm run build
 FROM node:18-alpine
 
 WORKDIR /app
+
+# Installer OpenSSL pour Prisma
+RUN apk add --no-cache openssl
 
 # Copier les fichiers de dépendances
 COPY package*.json ./

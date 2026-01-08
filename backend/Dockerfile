@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Installer les dépendances
+# Installer toutes les dépendances (y compris dev pour le build)
 RUN npm ci
 
 # Copier le code source
@@ -25,17 +25,24 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Installer seulement les dépendances de production
+# Copier les fichiers de dépendances
 COPY package*.json ./
-RUN npm ci --only=production
+
+# Installer seulement les dépendances de production avec la nouvelle syntaxe
+RUN npm ci --omit=dev
 
 # Copier le build depuis le stage précédent
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
+# Générer à nouveau le client Prisma pour la production
+RUN npx prisma generate
 
 # Créer le dossier uploads
-RUN mkdir -p uploads
+RUN mkdir -p uploads && chown -R node:node /app
+
+# Utiliser l'utilisateur non-root
+USER node
 
 # Exposer le port
 EXPOSE 3000

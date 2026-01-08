@@ -43,7 +43,7 @@ export const getAllFormations = async (req: Request, res: Response) => {
   }
 };
 
-export const getFormationById = async (req: Request, res: Response) => {
+export const getFormationById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -89,7 +89,8 @@ export const getFormationById = async (req: Request, res: Response) => {
     });
 
     if (!formation) {
-      return res.status(404).json({ error: 'Formation non trouvée' });
+      res.status(404).json({ error: 'Formation non trouvée' });
+      return;
     }
 
     res.json(formation);
@@ -243,7 +244,7 @@ export const createSession = async (req: Request, res: Response) => {
   }
 };
 
-export const inscrireApprenant = async (req: Request, res: Response) => {
+export const inscrireApprenant = async (req: Request, res: Response): Promise<void> => {
   try {
     const { sessionId } = req.params;
     const { apprenantId } = req.body;
@@ -254,11 +255,13 @@ export const inscrireApprenant = async (req: Request, res: Response) => {
     });
 
     if (!session) {
-      return res.status(404).json({ error: 'Session non trouvée' });
+      res.status(404).json({ error: 'Session non trouvée' });
+      return;
     }
 
     if (session.placesRestantes <= 0) {
-      return res.status(400).json({ error: 'Plus de places disponibles' });
+      res.status(400).json({ error: 'Plus de places disponibles' });
+      return;
     }
 
     // Créer l'inscription

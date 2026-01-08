@@ -49,7 +49,7 @@ export const getAllApprenants = async (req: Request, res: Response) => {
   }
 };
 
-export const getApprenantById = async (req: Request, res: Response) => {
+export const getApprenantById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -90,7 +90,8 @@ export const getApprenantById = async (req: Request, res: Response) => {
     });
 
     if (!apprenant) {
-      return res.status(404).json({ error: 'Apprenant non trouvé' });
+      res.status(404).json({ error: 'Apprenant non trouvé' });
+      return;
     }
 
     res.json(apprenant);

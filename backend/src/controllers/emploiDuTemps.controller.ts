@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 
-export const createEmploiDuTemps = async (req: Request, res: Response) => {
+export const createEmploiDuTemps = async (req: Request, res: Response): Promise<void> => {
   try {
     const {
       sessionId,
@@ -34,9 +34,10 @@ export const createEmploiDuTemps = async (req: Request, res: Response) => {
       });
 
       if (conflit) {
-        return res.status(400).json({
+        res.status(400).json({
           error: 'La salle est déjà réservée pour cette période',
         });
+        return;
       }
     }
 

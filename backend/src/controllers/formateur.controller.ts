@@ -51,7 +51,7 @@ export const getAllFormateurs = async (req: Request, res: Response) => {
   }
 };
 
-export const getFormateurById = async (req: Request, res: Response) => {
+export const getFormateurById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -93,7 +93,8 @@ export const getFormateurById = async (req: Request, res: Response) => {
     });
 
     if (!formateur) {
-      return res.status(404).json({ error: 'Formateur non trouvé' });
+      res.status(404).json({ error: 'Formateur non trouvé' });
+      return;
     }
 
     res.json(formateur);

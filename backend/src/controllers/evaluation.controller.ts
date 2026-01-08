@@ -104,7 +104,7 @@ export const getEvaluationsBySession = async (req: Request, res: Response) => {
   }
 };
 
-export const saisirNote = async (req: Request, res: Response) => {
+export const saisirNote = async (req: Request, res: Response): Promise<void> => {
   try {
     const { evaluationId, apprenantId, note, commentaire } = req.body;
 
@@ -114,14 +114,16 @@ export const saisirNote = async (req: Request, res: Response) => {
     });
 
     if (!evaluation) {
-      return res.status(404).json({ error: 'Évaluation non trouvée' });
+      res.status(404).json({ error: 'Évaluation non trouvée' });
+      return;
     }
 
     // Vérifier que la note est dans la plage valide
     if (note !== null && evaluation.noteMax && note > evaluation.noteMax) {
-      return res.status(400).json({
+      res.status(400).json({
         error: `La note ne peut pas dépasser ${evaluation.noteMax}`,
       });
+      return;
     }
 
     // Créer ou mettre à jour la note
@@ -199,14 +201,14 @@ export const getNotesApprenant = async (req: Request, res: Response) => {
     });
 
     // Calculer les statistiques
-    const notesValides = notes.filter((n) => n.note !== null);
+    const notesValides = notes.filter((n: any) => n.note !== null);
     const moyenne =
       notesValides.length > 0
-        ? notesValides.reduce((sum, n) => {
+        ? notesValides.reduce((sum: number, n: any) => {
             const noteNormalisee = (n.note! / (n.evaluation.noteMax || 20)) * 20;
             return sum + noteNormalisee * n.evaluation.coefficient;
           }, 0) /
-          notesValides.reduce((sum, n) => sum + n.evaluation.coefficient, 0)
+          notesValides.reduce((sum: number, n: any) => sum + n.evaluation.coefficient, 0)
         : null;
 
     res.json({

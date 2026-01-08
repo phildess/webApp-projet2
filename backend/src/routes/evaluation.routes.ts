@@ -2,13 +2,12 @@ import { Router } from 'express';
 import * as evaluationController from '../controllers/evaluation.controller';
 import { authenticate, authorize } from '../middleware/auth';
 
-
 const router = Router();
 
 router.post(
   '/',
   authenticate,
-  authorize('ADMIN, 'FORMATEUR),
+  authorize('ADMIN', 'FORMATEUR'),
   evaluationController.createEvaluation
 );
 
@@ -21,7 +20,7 @@ router.get(
 router.post(
   '/notes',
   authenticate,
-  authorize('ADMIN, 'FORMATEUR),
+  authorize('ADMIN', 'FORMATEUR'),
   evaluationController.saisirNote
 );
 
@@ -34,7 +33,7 @@ router.get(
 router.post(
   '/competences',
   authenticate,
-  authorize('ADMIN, 'FORMATEUR),
+  authorize('ADMIN', 'FORMATEUR'),
   evaluationController.validerCompetence
 );
 

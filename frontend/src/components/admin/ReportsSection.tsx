@@ -26,6 +26,8 @@ export const ReportsSection: React.FC = () => {
   );
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [generating, setGenerating] = useState(false);
+  const [exportFormat, setExportFormat] = useState('pdf');
+  const [includeCharts, setIncludeCharts] = useState(true);
 
   const reportTypes: ReportType[] = [
     {
@@ -97,20 +99,35 @@ export const ReportsSection: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       const reportName = reportTypes.find((r) => r.id === selectedReport)?.name;
-      toast.success(`${reportName} généré avec succès`);
+      const formatExt = exportFormat === 'excel' ? 'xlsx' : exportFormat;
+
+      toast.success(`${reportName} généré avec succès (format: ${exportFormat.toUpperCase()}, graphiques: ${includeCharts ? 'inclus' : 'exclus'})`);
 
       // Simulate download
       const blob = new Blob(['Contenu du rapport simulé'], { type: 'text/plain' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${selectedReport}_${startDate}_${endDate}.pdf`;
+      a.download = `${selectedReport}_${startDate}_${endDate}.${formatExt}`;
       a.click();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       toast.error('Erreur lors de la génération du rapport');
     } finally {
       setGenerating(false);
     }
+  };
+
+  const handleDownloadReport = (reportName: string, reportType: string) => {
+    toast.success(`Téléchargement de "${reportName}"`);
+    // Simulate download
+    const blob = new Blob(['Contenu du rapport'], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${reportName}.${reportType.toLowerCase()}`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   return (
@@ -259,7 +276,11 @@ export const ReportsSection: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <Button variant="secondary" size="sm">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleDownloadReport(report.name, report.type)}
+                >
                   <FiDownload className="mr-1" />
                   Télécharger
                 </Button>
@@ -281,7 +302,11 @@ export const ReportsSection: React.FC = () => {
                 <h4 className="text-sm font-medium text-gray-900">Format par défaut</h4>
                 <p className="text-sm text-gray-500">Format utilisé pour les exports</p>
               </div>
-              <select className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+              <select
+                value={exportFormat}
+                onChange={(e) => setExportFormat(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              >
                 <option value="pdf">PDF</option>
                 <option value="excel">Excel (.xlsx)</option>
                 <option value="csv">CSV</option>
@@ -294,8 +319,17 @@ export const ReportsSection: React.FC = () => {
                   Ajouter des graphiques visuels aux rapports
                 </p>
               </div>
-              <button className="bg-primary-600 relative inline-flex h-6 w-11 items-center rounded-full">
-                <span className="translate-x-6 inline-block h-4 w-4 transform rounded-full bg-white" />
+              <button
+                onClick={() => setIncludeCharts(!includeCharts)}
+                className={`${
+                  includeCharts ? 'bg-primary-600' : 'bg-gray-200'
+                } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2`}
+              >
+                <span
+                  className={`${
+                    includeCharts ? 'translate-x-6' : 'translate-x-1'
+                  } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                />
               </button>
             </div>
           </div>

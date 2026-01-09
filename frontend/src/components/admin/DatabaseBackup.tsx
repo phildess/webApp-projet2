@@ -38,8 +38,10 @@ export const DatabaseBackup: React.FC = () => {
   ]);
 
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [autoBackupEnabled, setAutoBackupEnabled] = useState(true);
   const [backupFrequency, setBackupFrequency] = useState('daily');
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleCreateBackup = async () => {
     try {
@@ -86,6 +88,52 @@ export const DatabaseBackup: React.FC = () => {
     }
   };
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.name.endsWith('.sql') && !file.name.endsWith('.zip')) {
+      toast.error('Format de fichier non supporté. Utilisez .sql ou .zip');
+      return;
+    }
+
+    // Check file size (max 100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error('Le fichier est trop volumineux (max 100MB)');
+      return;
+    }
+
+    try {
+      setImporting(true);
+      // Simulate file import
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const newBackup: Backup = {
+        id: Date.now().toString(),
+        filename: file.name,
+        size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+        date: new Date().toISOString(),
+        type: 'manual',
+      };
+
+      setBackups([newBackup, ...backups]);
+      toast.success('Sauvegarde importée avec succès');
+    } catch (error) {
+      toast.error('Erreur lors de l\'import de la sauvegarde');
+    } finally {
+      setImporting(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Backup Actions */}
@@ -99,14 +147,26 @@ export const DatabaseBackup: React.FC = () => {
               <FiDatabase className="mr-2" />
               Créer une sauvegarde maintenant
             </Button>
-            <Button variant="secondary" className="w-full">
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={handleImportClick}
+              loading={importing}
+            >
               <FiUpload className="mr-2" />
               Importer une sauvegarde
             </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".sql,.zip"
+              onChange={handleFileChange}
+              className="hidden"
+            />
           </div>
           <p className="text-sm text-gray-500 mt-4">
             La création d'une sauvegarde peut prendre plusieurs minutes selon la taille de votre
-            base de données.
+            base de données. Formats acceptés pour l'import : .sql, .zip (max 100MB).
           </p>
         </CardContent>
       </Card>

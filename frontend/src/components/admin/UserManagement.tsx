@@ -16,6 +16,23 @@ interface User {
   dateCreation: string;
 }
 
+interface UserFormData {
+  nom: string;
+  prenom: string;
+  email: string;
+  password: string;
+  role: 'ADMIN' | 'FORMATEUR' | 'APPRENANT';
+  actif: boolean;
+  // Specific fields based on role
+  telephone?: string;
+  adresse?: string;
+  dateNaissance?: string;
+  lieuNaissance?: string;
+  typeContrat?: string;
+  specialite?: string;
+  domainesExpertise?: string;
+}
+
 interface UserManagementProps {
   onUserUpdate?: () => void;
 }
@@ -26,6 +43,24 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate }) 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState<UserFormData>({
+    nom: '',
+    prenom: '',
+    email: '',
+    password: '',
+    role: 'APPRENANT',
+    actif: true,
+    telephone: '',
+    adresse: '',
+    dateNaissance: '',
+    lieuNaissance: '',
+    typeContrat: 'CDI',
+    specialite: '',
+    domainesExpertise: '',
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -95,6 +130,112 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate }) 
 
   const getStatusColor = (actif: boolean) => {
     return actif ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
+  };
+
+  const handleOpenCreateModal = () => {
+    setFormData({
+      nom: '',
+      prenom: '',
+      email: '',
+      password: '',
+      role: 'APPRENANT',
+      actif: true,
+      telephone: '',
+      adresse: '',
+      dateNaissance: '',
+      lieuNaissance: '',
+      typeContrat: 'CDI',
+      specialite: '',
+      domainesExpertise: '',
+    });
+    setEditingUser(null);
+    setShowCreateModal(true);
+  };
+
+  const handleOpenEditModal = (user: User) => {
+    setEditingUser(user);
+    setFormData({
+      nom: user.nom,
+      prenom: user.prenom,
+      email: user.email,
+      password: '',
+      role: user.role as 'ADMIN' | 'FORMATEUR' | 'APPRENANT',
+      actif: user.actif,
+      telephone: '',
+      adresse: '',
+      dateNaissance: '',
+      lieuNaissance: '',
+      typeContrat: 'CDI',
+      specialite: '',
+      domainesExpertise: '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowCreateModal(false);
+    setShowEditModal(false);
+    setEditingUser(null);
+    setSubmitting(false);
+  };
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      if (editingUser) {
+        // Edit existing user
+        toast.success('Utilisateur modifié avec succès (fonctionnalité simulée)');
+      } else {
+        // Create new user
+        const endpoint =
+          formData.role === 'APPRENANT' ? '/apprenants' : '/formateurs';
+
+        const userData = {
+          user: {
+            nom: formData.nom,
+            prenom: formData.prenom,
+            email: formData.email,
+            password: formData.password,
+            role: formData.role,
+            actif: formData.actif,
+          },
+          telephone: formData.telephone,
+          adresse: formData.adresse,
+          dateNaissance: formData.dateNaissance || undefined,
+          lieuNaissance: formData.lieuNaissance,
+          ...(formData.role === 'FORMATEUR' && {
+            typeContrat: formData.typeContrat,
+            specialite: formData.specialite,
+            domainesExpertise: formData.domainesExpertise,
+          }),
+        };
+
+        await api.post(endpoint, userData);
+        toast.success('Utilisateur créé avec succès');
+      }
+
+      handleCloseModal();
+      fetchUsers();
+      onUserUpdate?.();
+    } catch (error: any) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      toast.error(error.response?.data?.error || 'Impossible de sauvegarder l\'utilisateur');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -192,7 +333,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate }) 
               <option value="FORMATEUR">Formateurs</option>
               <option value="APPRENANT">Apprenants</option>
             </select>
-            <Button onClick={() => setShowCreateModal(true)}>
+            <Button onClick={handleOpenCreateModal}>
               <FiPlus className="mr-2" />
               Nouvel utilisateur
             </Button>
@@ -273,13 +414,15 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate }) 
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
                         className="text-primary-600 hover:text-primary-900 mr-4"
-                        onClick={() => toast('Édition en cours de développement')}
+                        onClick={() => handleOpenEditModal(user)}
+                        title="Éditer l'utilisateur"
                       >
                         <FiEdit className="h-5 w-5" />
                       </button>
                       <button
                         className="text-red-600 hover:text-red-900"
                         onClick={() => handleDeleteUser(user.id)}
+                        title="Supprimer l'utilisateur"
                       >
                         <FiTrash2 className="h-5 w-5" />
                       </button>
@@ -303,20 +446,247 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate }) 
         </CardContent>
       </Card>
 
-      {/* Create Modal Placeholder */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="max-w-2xl w-full m-4">
-            <CardHeader>
-              <CardTitle>Créer un nouvel utilisateur</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-4">
-                Fonctionnalité de création d'utilisateur en cours de développement
-              </p>
-              <Button onClick={() => setShowCreateModal(false)}>Fermer</Button>
-            </CardContent>
-          </Card>
+      {/* Create/Edit Modal */}
+      {(showCreateModal || showEditModal) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {editingUser ? 'Modifier l\'utilisateur' : 'Nouvel utilisateur'}
+              </h2>
+            </div>
+
+            <form onSubmit={handleSubmit} className="px-6 py-4">
+              {/* Basic Information */}
+              <div className="space-y-4 mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                  Informations de base
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nom <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="text"
+                      name="nom"
+                      value={formData.nom}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="Dupont"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Prénom <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="text"
+                      name="prenom"
+                      value={formData.prenom}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="Jean"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                      placeholder="jean.dupont@exemple.fr"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {editingUser ? 'Nouveau mot de passe (laisser vide pour ne pas changer)' : 'Mot de passe'}{' '}
+                      {!editingUser && <span className="text-red-500">*</span>}
+                    </label>
+                    <Input
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required={!editingUser}
+                      placeholder="••••••••"
+                      minLength={6}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Rôle <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="role"
+                      value={formData.role}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                      <option value="APPRENANT">Apprenant</option>
+                      <option value="FORMATEUR">Formateur</option>
+                      <option value="ADMIN">Administrateur</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="actif"
+                        checked={formData.actif}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm font-medium text-gray-700">
+                        Compte actif
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-4 mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                  Coordonnées
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Téléphone
+                    </label>
+                    <Input
+                      type="tel"
+                      name="telephone"
+                      value={formData.telephone}
+                      onChange={handleInputChange}
+                      placeholder="06 12 34 56 78"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Date de naissance
+                    </label>
+                    <Input
+                      type="date"
+                      name="dateNaissance"
+                      value={formData.dateNaissance}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Adresse
+                    </label>
+                    <Input
+                      type="text"
+                      name="adresse"
+                      value={formData.adresse}
+                      onChange={handleInputChange}
+                      placeholder="123 Rue de la Paix, 75000 Paris"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Lieu de naissance
+                    </label>
+                    <Input
+                      type="text"
+                      name="lieuNaissance"
+                      value={formData.lieuNaissance}
+                      onChange={handleInputChange}
+                      placeholder="Paris"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Formateur-specific fields */}
+              {formData.role === 'FORMATEUR' && (
+                <div className="space-y-4 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                    Informations formateur
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Type de contrat
+                      </label>
+                      <select
+                        name="typeContrat"
+                        value={formData.typeContrat}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      >
+                        <option value="CDI">CDI</option>
+                        <option value="CDD">CDD</option>
+                        <option value="Prestataire">Prestataire</option>
+                        <option value="Vacataire">Vacataire</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Spécialité
+                      </label>
+                      <Input
+                        type="text"
+                        name="specialite"
+                        value={formData.specialite}
+                        onChange={handleInputChange}
+                        placeholder="Développement web"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Domaines d'expertise (séparés par des virgules)
+                      </label>
+                      <textarea
+                        name="domainesExpertise"
+                        value={formData.domainesExpertise}
+                        onChange={handleInputChange}
+                        rows={3}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        placeholder="JavaScript, React, Node.js, TypeScript"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleCloseModal}
+                  disabled={submitting}
+                >
+                  Annuler
+                </Button>
+                <Button type="submit" loading={submitting}>
+                  {editingUser ? 'Modifier' : 'Créer'}
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

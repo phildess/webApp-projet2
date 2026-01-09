@@ -49,10 +49,10 @@ services:
       sh -c "
         echo 'Attente de la base de données...' &&
         sleep 5 &&
-        echo 'Exécution des migrations...' &&
-        npx prisma migrate deploy &&
+        echo 'Synchronisation du schéma de base de données...' &&
+        npx prisma db push --accept-data-loss &&
         echo 'Peuplement de la base de données...' &&
-        npx prisma db seed || echo 'Seed déjà effectué' &&
+        npx prisma db seed || echo 'Seed déjà effectué ou erreur' &&
         echo 'Démarrage du serveur...' &&
         node dist/index.js
       "

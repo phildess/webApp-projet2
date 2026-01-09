@@ -7,6 +7,11 @@ import { Toaster } from 'react-hot-toast';
 import { LoginPage } from '@/pages/LoginPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { FormationsPage } from '@/pages/FormationsPage';
+import { ApprenantsPage } from '@/pages/ApprenantsPage';
+import { FormateursPage } from '@/pages/FormateursPage';
+import { EmploiDuTempsPage } from '@/pages/EmploiDuTempsPage';
+import { EvaluationsPage } from '@/pages/EvaluationsPage';
+import { AdminPage } from '@/pages/AdminPage';
 
 // Route protégée
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -62,6 +67,46 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <FormationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/apprenants"
+        element={
+          <ProtectedRoute>
+            <ApprenantsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/formateurs"
+        element={
+          <ProtectedRoute>
+            <FormateursPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/emploi-du-temps"
+        element={
+          <ProtectedRoute>
+            <EmploiDuTempsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/evaluations"
+        element={
+          <ProtectedRoute>
+            <EvaluationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <AdminPage />
           </ProtectedRoute>
         }
       />

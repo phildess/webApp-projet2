@@ -10,6 +10,10 @@ import {
   FiMail,
   FiFileText,
 } from 'react-icons/fi';
+import { UserManagement } from '@/components/admin/UserManagement';
+import { SystemSettings } from '@/components/admin/SystemSettings';
+import { DatabaseBackup } from '@/components/admin/DatabaseBackup';
+import { ReportsSection } from '@/components/admin/ReportsSection';
 
 export const AdminPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'general' | 'users' | 'system'>('general');
@@ -21,6 +25,7 @@ export const AdminPage: React.FC = () => {
       icon: FiUsers,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
+      action: () => setActiveTab('users'),
     },
     {
       title: 'Base de données',
@@ -28,6 +33,7 @@ export const AdminPage: React.FC = () => {
       icon: FiDatabase,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
+      action: () => setActiveTab('system'),
     },
     {
       title: 'Sécurité',
@@ -35,6 +41,7 @@ export const AdminPage: React.FC = () => {
       icon: FiShield,
       color: 'text-red-600',
       bgColor: 'bg-red-100',
+      action: () => setActiveTab('system'),
     },
     {
       title: 'Notifications',
@@ -42,6 +49,7 @@ export const AdminPage: React.FC = () => {
       icon: FiMail,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
+      action: () => setActiveTab('system'),
     },
     {
       title: 'Rapports',
@@ -49,6 +57,7 @@ export const AdminPage: React.FC = () => {
       icon: FiFileText,
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-100',
+      action: () => setActiveTab('system'),
     },
     {
       title: 'Configuration',
@@ -56,6 +65,7 @@ export const AdminPage: React.FC = () => {
       icon: FiSettings,
       color: 'text-gray-600',
       bgColor: 'bg-gray-100',
+      action: () => setActiveTab('system'),
     },
   ];
 
@@ -125,7 +135,7 @@ export const AdminPage: React.FC = () => {
                         {section.title}
                       </h3>
                       <p className="text-sm text-gray-600 mb-4">{section.description}</p>
-                      <Button variant="secondary" size="sm">
+                      <Button variant="secondary" size="sm" onClick={section.action}>
                         Configurer
                       </Button>
                     </CardContent>
@@ -163,42 +173,14 @@ export const AdminPage: React.FC = () => {
           </>
         )}
 
-        {activeTab === 'users' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Gestion des utilisateurs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <FiUsers className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
-                  Gestion des utilisateurs
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Interface de gestion des utilisateurs en construction
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {activeTab === 'users' && <UserManagement />}
 
         {activeTab === 'system' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Paramètres système</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <FiSettings className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
-                  Configuration système
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Interface de configuration système en construction
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <SystemSettings />
+            <DatabaseBackup />
+            <ReportsSection />
+          </div>
         )}
       </div>
     </Layout>

@@ -199,31 +199,37 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate }) 
         // Edit existing user
         toast.success('Utilisateur modifié avec succès (fonctionnalité simulée)');
       } else {
-        // Create new user
-        const endpoint =
-          formData.role === 'APPRENANT' ? '/apprenants' : '/formateurs';
-
-        const userData = {
-          user: {
-            nom: formData.nom,
-            prenom: formData.prenom,
-            email: formData.email,
-            password: formData.password,
-            role: formData.role,
-            actif: formData.actif,
-          },
-          telephone: formData.telephone,
-          adresse: formData.adresse,
-          dateNaissance: formData.dateNaissance || undefined,
-          lieuNaissance: formData.lieuNaissance,
-          ...(formData.role === 'FORMATEUR' && {
-            typeContrat: formData.typeContrat,
-            specialite: formData.specialite,
-            domainesExpertise: formData.domainesExpertise,
-          }),
+        // Create new user via /auth/register
+        const userData: any = {
+          nom: formData.nom,
+          prenom: formData.prenom,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+          telephone: formData.telephone || undefined,
         };
 
-        await api.post(endpoint, userData);
+        // Add role-specific data
+        if (formData.role === 'APPRENANT') {
+          // For apprenants, dateNaissance is required by backend
+          if (formData.dateNaissance) {
+            userData.dateNaissance = new Date(formData.dateNaissance).toISOString();
+          } else {
+            // Use a default date if not provided
+            userData.dateNaissance = new Date('2000-01-01').toISOString();
+          }
+          userData.adresse = formData.adresse || undefined;
+        } else if (formData.role === 'FORMATEUR') {
+          // For formateurs, convert comma-separated strings to arrays
+          userData.qualifications = formData.specialite
+            ? [formData.specialite]
+            : [];
+          userData.domainesExpertise = formData.domainesExpertise
+            ? formData.domainesExpertise.split(',').map(d => d.trim()).filter(d => d)
+            : [];
+        }
+
+        await api.post('/auth/register', userData);
         toast.success('Utilisateur créé avec succès');
       }
 
@@ -232,7 +238,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate }) 
       onUserUpdate?.();
     } catch (error: any) {
       console.error('Erreur lors de la sauvegarde:', error);
-      toast.error(error.response?.data?.error || 'Impossible de sauvegarder l\'utilisateur');
+      const errorMessage = error.response?.data?.error ||
+                          error.response?.data?.errors?.[0]?.msg ||
+                          'Impossible de sauvegarder l\'utilisateur';
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -623,38 +632,24 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate }) 
                     Informations formateur
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Type de contrat
-                      </label>
-                      <select
-                        name="typeContrat"
-                        value={formData.typeContrat}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      >
-                        <option value="CDI">CDI</option>
-                        <option value="CDD">CDD</option>
-                        <option value="Prestataire">Prestataire</option>
-                        <option value="Vacataire">Vacataire</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Spécialité
+                        Spécialité principale
                       </label>
                       <Input
                         type="text"
                         name="specialite"
                         value={formData.specialite}
                         onChange={handleInputChange}
-                        placeholder="Développement web"
+                        placeholder="Développement web, Design graphique, etc."
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Cette spécialité sera ajoutée aux qualifications du formateur
+                      </p>
                     </div>
 
-                    <div className="md:col-span-2">
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Domaines d'expertise (séparés par des virgules)
                       </label>
@@ -666,6 +661,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onUserUpdate }) 
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         placeholder="JavaScript, React, Node.js, TypeScript"
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Listez les domaines d'expertise du formateur, séparés par des virgules
+                      </p>
                     </div>
                   </div>
                 </div>
